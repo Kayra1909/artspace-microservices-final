@@ -4,7 +4,7 @@
       "DownstreamPathTemplate": "/api/Auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5144 }
+        { "Host": "auth-service", "Port": 8080 }
       ],
       "UpstreamPathTemplate": "/api/Auth/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
@@ -13,7 +13,7 @@
       "DownstreamPathTemplate": "/api/Artwork/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5280 }
+        { "Host": "art-service", "Port": 8080 }
       ],
       "UpstreamPathTemplate": "/api/Artwork/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
@@ -22,7 +22,7 @@
       "DownstreamPathTemplate": "/api/Comment/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5285 }
+        { "Host": "comment-service", "Port": 8080 }
       ],
       "UpstreamPathTemplate": "/api/Comment/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]
@@ -31,7 +31,7 @@
       "DownstreamPathTemplate": "/api/Notification/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
-        { "Host": "localhost", "Port": 5012 }
+        { "Host": "notification-service", "Port": 8080 }
       ],
       "UpstreamPathTemplate": "/api/Notification/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ]

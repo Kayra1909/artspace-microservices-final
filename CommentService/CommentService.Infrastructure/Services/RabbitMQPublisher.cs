@@ -11,7 +11,7 @@ public class RabbitMQPublisher
 
     public RabbitMQPublisher()
     {
-        var factory = new ConnectionFactory { HostName = "localhost" };
+        var factory = new ConnectionFactory { HostName = "rabbitmq" };
         _connection = factory.CreateConnection();
         _channel = _connection.CreateModel();
         _channel.QueueDeclare(
