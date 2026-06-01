@@ -35,41 +35,48 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ maxWidth: 420 }}>
-      <h1 style={{ fontSize: '1.75rem', marginBottom: '1.5rem' }}>Register</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div style={{ maxWidth: 440 }}>
+      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>Create Account</h1>
+      <p className="muted" style={{ marginBottom: '1.75rem' }}>
+        Already have an account? <Link to="/login">Login</Link>
+      </p>
+
+      <form onSubmit={handleSubmit} className="form-stack">
         <div>
           <label className="field-label">Username</label>
-          <input type="text" value={form.username} onChange={set('username')} required autoFocus />
+          <input type="text" value={form.username} onChange={set('username')} placeholder="e.g. janedoe" required autoFocus />
         </div>
         <div>
           <label className="field-label">Email</label>
-          <input type="email" value={form.email} onChange={set('email')} required />
+          <input type="email" value={form.email} onChange={set('email')} placeholder="your@email.com" required />
         </div>
         <div>
           <label className="field-label">Password</label>
-          <input type="password" value={form.password} onChange={set('password')} required />
+          <input type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required />
         </div>
         <div>
           <label className="field-label">Role</label>
           <select value={form.role} onChange={set('role')}>
-            <option value="Visitor">Visitor</option>
-            <option value="Artist">Artist</option>
+            <option value="Visitor">Visitor — browse and comment on artworks</option>
+            <option value="Artist">Artist — upload and manage artworks</option>
           </select>
         </div>
         <div>
-          <label className="field-label">Bio <span className="muted">(optional)</span></label>
-          <input type="text" value={form.bio} onChange={set('bio')} />
+          <label className="field-label">
+            Bio <span className="muted">(optional)</span>
+          </label>
+          <input type="text" value={form.bio} onChange={set('bio')} placeholder="A short description about you" />
         </div>
         <div>
-          <label className="field-label">Contact Email <span className="muted">(optional)</span></label>
-          <input type="email" value={form.contactEmail} onChange={set('contactEmail')} />
+          <label className="field-label">
+            Contact Email <span className="muted">(optional)</span>
+          </label>
+          <input type="email" value={form.contactEmail} onChange={set('contactEmail')} placeholder="contact@example.com" />
         </div>
         {error && <p className="error-text">{error}</p>}
-        <button type="submit" disabled={loading} className="btn-primary">
-          {loading ? 'Registering…' : 'Create account'}
+        <button type="submit" disabled={loading} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
+          {loading ? 'Creating account…' : 'Create Account'}
         </button>
-        <p className="muted">Already have an account? <Link to="/login">Login</Link></p>
       </form>
     </div>
   )

@@ -17,9 +17,9 @@ export default function NotificationsPage() {
       .then(({ data }) => setNotifications(data))
       .catch(err => {
         if (err.response?.status === 401) {
-          setError('Session expired. Please login again.')
+          setError('Your session has expired. Please log in again.')
         } else {
-          setError('Failed to load notifications.')
+          setError('Could not load notifications.')
         }
       })
       .finally(() => setLoading(false))
@@ -28,30 +28,28 @@ export default function NotificationsPage() {
   async function markRead(id) {
     try {
       await api.put(`/api/Notification/${id}/read`)
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-      )
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
     } catch {
-      // silently ignore mark-read failures
+      // ignore
     }
   }
 
   if (!token) {
     return (
       <div>
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '1rem' }}>Notifications</h1>
-        <p className="muted">Please <Link to="/login">login</Link> to view your notifications.</p>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Notifications</h1>
+        <p className="muted">Please <Link to="/login">log in</Link> to view your notifications.</p>
       </div>
     )
   }
 
-  if (loading) return <p className="muted">Loading notifications…</p>
+  if (loading) return <p className="loading-text">Loading notifications…</p>
 
   if (error) {
     return (
       <div>
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '1rem' }}>Notifications</h1>
-        <p className="error-text">{error}</p>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Notifications</h1>
+        <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
         <Link to="/login">Go to login</Link>
       </div>
     )
@@ -61,23 +59,26 @@ export default function NotificationsPage() {
 
   return (
     <div style={{ maxWidth: 680 }}>
-      <h1 style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>Notifications</h1>
-      {unread > 0 && (
-        <p className="muted" style={{ marginBottom: '1.25rem' }}>
-          {unread} unread notification{unread > 1 ? 's' : ''}
-        </p>
-      )}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.5rem' }}>
+        <h1 style={{ fontSize: '1.5rem' }}>Notifications</h1>
+        {unread > 0 && (
+          <span style={{
+            background: '#2563eb', color: '#fff',
+            fontSize: '0.75rem', fontWeight: 600,
+            padding: '0.1rem 0.55rem', borderRadius: 99,
+          }}>
+            {unread} new
+          </span>
+        )}
+      </div>
 
       {notifications.length === 0 ? (
-        <div style={{
-          background: '#f8fafc', border: '1px solid #e2e8f0',
-          borderRadius: 10, padding: '2.5rem', textAlign: 'center',
-        }}>
-          <p style={{ color: '#64748b' }}>No notifications yet.</p>
-          <p className="muted">You will be notified when someone comments on your artwork.</p>
+        <div className="empty-state">
+          <p className="empty-title">No notifications yet.</p>
+          <p className="empty-sub">You will be notified when someone comments on your artwork.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           {notifications.map(n => (
             <div
               key={n.id}
@@ -92,19 +93,18 @@ export default function NotificationsPage() {
                 gap: '1rem',
               }}
             >
-              <div style={{ flex: 1 }}>
-                {!n.isRead && (
-                  <span style={{
-                    display: 'inline-block',
-                    width: 8, height: 8,
-                    borderRadius: '50%',
-                    background: '#3b82f6',
-                    marginRight: 8,
-                    verticalAlign: 'middle',
-                  }} />
-                )}
-                <span style={{ color: '#1e293b', fontSize: '0.9rem' }}>{n.message}</span>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                  {!n.isRead && (
+                    <span style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: '#2563eb', flexShrink: 0,
+                      display: 'inline-block',
+                    }} />
+                  )}
+                  <span style={{ color: '#1e293b', fontSize: '0.9rem' }}>{n.message}</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                   {new Date(n.createdAt).toLocaleString()}
                 </p>
               </div>
@@ -112,11 +112,15 @@ export default function NotificationsPage() {
                 <button
                   onClick={() => markRead(n.id)}
                   style={{
-                    background: '#10b981', color: '#fff',
-                    border: 'none', borderRadius: 6,
-                    padding: '0.3rem 0.75rem',
-                    fontSize: '0.8rem', cursor: 'pointer',
+                    background: 'transparent',
+                    border: '1px solid #bfdbfe',
+                    color: '#2563eb',
+                    borderRadius: 5,
+                    padding: '0.25rem 0.65rem',
+                    fontSize: '0.775rem',
+                    cursor: 'pointer',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   Mark read

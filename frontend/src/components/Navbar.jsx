@@ -12,60 +12,69 @@ export default function Navbar() {
     navigate('/login')
   }
 
-  function activeStyle(path) {
+  function navLink(path) {
     const active = location.pathname.startsWith(path)
     return {
-      color: active ? '#fff' : 'rgba(255,255,255,0.7)',
+      color: active ? '#fff' : 'rgba(255,255,255,0.65)',
       fontWeight: active ? '600' : '400',
       textDecoration: 'none',
-      fontSize: '0.95rem',
+      fontSize: '0.9rem',
+      paddingBottom: '2px',
+      borderBottom: active ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent',
     }
   }
 
   return (
     <nav style={{
-      background: '#1e293b',
-      padding: '0.75rem 2rem',
+      background: '#0f172a',
+      padding: '0 1.5rem',
       display: 'flex',
       alignItems: 'center',
       gap: '1.5rem',
+      height: 52,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
     }}>
-      <Link to="/artworks" style={{
-        color: '#fff', fontWeight: 700, fontSize: '1.1rem',
-        textDecoration: 'none', marginRight: 'auto',
+      <Link to="/" style={{
+        color: '#fff',
+        fontWeight: 700,
+        fontSize: '1.05rem',
+        textDecoration: 'none',
+        marginRight: 'auto',
+        letterSpacing: '0.01em',
       }}>
         ArtSpace
       </Link>
 
-      <Link to="/artworks" style={activeStyle('/artworks')}>Artworks</Link>
+      <Link to="/artworks" style={navLink('/artworks')}>Artworks</Link>
 
       {token && (
-        <Link to="/notifications" style={activeStyle('/notifications')}>
-          Notifications
-        </Link>
+        <Link to="/notifications" style={navLink('/notifications')}>Notifications</Link>
       )}
 
       {token ? (
         <>
-          <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.875rem' }}>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.825rem' }}>
             {user?.username}
           </span>
-          <button onClick={logout} style={{
-            background: 'transparent',
-            border: '1px solid rgba(255,255,255,0.35)',
-            color: '#fff',
-            padding: '0.3rem 0.8rem',
-            fontSize: '0.875rem',
-            borderRadius: 6,
-            cursor: 'pointer',
-          }}>
+          <button
+            onClick={logout}
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.25)',
+              color: 'rgba(255,255,255,0.75)',
+              padding: '0.3rem 0.8rem',
+              fontSize: '0.825rem',
+              borderRadius: 5,
+              cursor: 'pointer',
+            }}
+          >
             Logout
           </button>
         </>
       ) : (
         <>
-          <Link to="/login" style={activeStyle('/login')}>Login</Link>
-          <Link to="/register" style={activeStyle('/register')}>Register</Link>
+          <Link to="/login" style={navLink('/login')}>Login</Link>
+          <Link to="/register" style={navLink('/register')}>Register</Link>
         </>
       )}
     </nav>

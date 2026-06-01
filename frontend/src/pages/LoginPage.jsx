@@ -27,14 +27,19 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: 400 }}>
-      <h1 style={{ fontSize: '1.75rem', marginBottom: '1.5rem' }}>Login</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>Login</h1>
+      <p className="muted" style={{ marginBottom: '1.75rem' }}>
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
+
+      <form onSubmit={handleSubmit} className="form-stack">
         <div>
           <label className="field-label">Email</label>
           <input
             type="email"
             value={form.email}
             onChange={e => setForm({ ...form, email: e.target.value })}
+            placeholder="your@email.com"
             required
             autoFocus
           />
@@ -45,14 +50,14 @@ export default function LoginPage() {
             type="password"
             value={form.password}
             onChange={e => setForm({ ...form, password: e.target.value })}
+            placeholder="••••••••"
             required
           />
         </div>
         {error && <p className="error-text">{error}</p>}
-        <button type="submit" disabled={loading} className="btn-primary">
+        <button type="submit" disabled={loading} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
           {loading ? 'Logging in…' : 'Login'}
         </button>
-        <p className="muted">No account? <Link to="/register">Register</Link></p>
       </form>
     </div>
   )
