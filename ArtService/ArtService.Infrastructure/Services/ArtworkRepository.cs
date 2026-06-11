@@ -37,7 +37,7 @@ public class ArtworkRepository : IArtworkRepository
             query = query.Where(a => a.Category == category);
 
         if (!string.IsNullOrEmpty(keyword))
-            query = query.Where(a => a.Title.Contains(keyword) || a.Description.Contains(keyword));
+            query = query.Where(a => a.Title.Contains(keyword) || a.Description.Contains(keyword) || a.Category.Contains(keyword));
 
         return await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
     }

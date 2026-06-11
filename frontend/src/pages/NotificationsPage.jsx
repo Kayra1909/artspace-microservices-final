@@ -36,7 +36,7 @@ export default function NotificationsPage() {
 
   if (!token) {
     return (
-      <div>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Notifications</h1>
         <p className="muted">Please <Link to="/login">log in</Link> to view your notifications.</p>
       </div>
@@ -47,7 +47,7 @@ export default function NotificationsPage() {
 
   if (error) {
     return (
-      <div>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Notifications</h1>
         <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
         <Link to="/login">Go to login</Link>
@@ -58,14 +58,18 @@ export default function NotificationsPage() {
   const unread = notifications.filter(n => !n.isRead).length
 
   return (
-    <div style={{ maxWidth: 680 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.5rem' }}>
+    <div style={{ maxWidth: 680, margin: '0 auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
         <h1 style={{ fontSize: '1.5rem' }}>Notifications</h1>
         {unread > 0 && (
           <span style={{
-            background: '#2563eb', color: '#fff',
-            fontSize: '0.75rem', fontWeight: 600,
-            padding: '0.1rem 0.55rem', borderRadius: 99,
+            background: '#5B3FD6',
+            color: '#fff',
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            padding: '0.15rem 0.6rem',
+            borderRadius: 99,
+            letterSpacing: '0.02em',
           }}>
             {unread} new
           </span>
@@ -78,15 +82,15 @@ export default function NotificationsPage() {
           <p className="empty-sub">You will be notified when someone comments on your artwork.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
           {notifications.map(n => (
             <div
               key={n.id}
               style={{
-                background: n.isRead ? '#fff' : '#eff6ff',
-                border: `1px solid ${n.isRead ? '#e2e8f0' : '#bfdbfe'}`,
-                borderRadius: 8,
-                padding: '0.85rem 1rem',
+                background: n.isRead ? '#fff' : '#F3EEFF',
+                border: `1px solid ${n.isRead ? '#DDD6F7' : '#C4B5FD'}`,
+                borderRadius: 10,
+                padding: '0.9rem 1.1rem',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -94,17 +98,20 @@ export default function NotificationsPage() {
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.25rem' }}>
                   {!n.isRead && (
                     <span style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: '#2563eb', flexShrink: 0,
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: '#5B3FD6',
+                      flexShrink: 0,
                       display: 'inline-block',
                     }} />
                   )}
-                  <span style={{ color: '#1e293b', fontSize: '0.9rem' }}>{n.message}</span>
+                  <span style={{ color: '#1F1B2D', fontSize: '0.9rem' }}>{n.message}</span>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                <p style={{ fontSize: '0.75rem', color: '#6E6785', paddingLeft: n.isRead ? 0 : '1rem' }}>
                   {new Date(n.createdAt).toLocaleString()}
                 </p>
               </div>
@@ -113,14 +120,16 @@ export default function NotificationsPage() {
                   onClick={() => markRead(n.id)}
                   style={{
                     background: 'transparent',
-                    border: '1px solid #bfdbfe',
-                    color: '#2563eb',
-                    borderRadius: 5,
-                    padding: '0.25rem 0.65rem',
+                    border: '1px solid #C4B5FD',
+                    color: '#5B3FD6',
+                    borderRadius: 7,
+                    padding: '0.25rem 0.7rem',
                     fontSize: '0.775rem',
+                    fontWeight: 500,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
+                    fontFamily: 'inherit',
                   }}
                 >
                   Mark read

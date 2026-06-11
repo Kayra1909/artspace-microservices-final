@@ -26,39 +26,52 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 400 }}>
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>Login</h1>
-      <p className="muted" style={{ marginBottom: '1.75rem' }}>
-        Don't have an account? <Link to="/register">Register</Link>
-      </p>
+    <div style={{ maxWidth: 420, margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ fontSize: '1.8rem', marginBottom: '0.4rem' }}>Welcome back</h1>
+        <p className="muted">
+          Don't have an account? <Link to="/register">Create one</Link>
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="form-stack">
-        <div>
-          <label className="field-label">Email</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            placeholder="your@email.com"
-            required
-            autoFocus
-          />
-        </div>
-        <div>
-          <label className="field-label">Password</label>
-          <input
-            type="password"
-            value={form.password}
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            placeholder="••••••••"
-            required
-          />
-        </div>
-        {error && <p className="error-text">{error}</p>}
-        <button type="submit" disabled={loading} className="btn-primary" style={{ alignSelf: 'flex-start' }}>
-          {loading ? 'Logging in…' : 'Login'}
-        </button>
-      </form>
+      <div className="form-card">
+        <form onSubmit={handleSubmit} className="form-stack">
+          <div>
+            <label className="field-label">Account Email</label>
+            <input
+              type="email"
+              name="email"
+              autoComplete="username"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+              placeholder="your@email.com"
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="field-label">Password</label>
+            <input
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          {error && <p className="error-text">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{ width: '100%', marginTop: '0.25rem', textAlign: 'center' }}
+          >
+            {loading ? 'Logging in…' : 'Login'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

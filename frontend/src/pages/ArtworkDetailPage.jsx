@@ -63,14 +63,16 @@ export default function ArtworkDetailPage() {
   )
 
   return (
-    <div style={{ maxWidth: 740 }}>
-      <Link to="/artworks" style={{ fontSize: '0.875rem', color: '#64748b' }}>← Back to artworks</Link>
+    <div style={{ maxWidth: 740, margin: '0 auto' }}>
+      <Link to="/artworks" style={{ fontSize: '0.875rem', color: '#6E6785' }}>
+        ← Back to artworks
+      </Link>
 
-      <div style={{ marginTop: '1.25rem', marginBottom: '1.5rem' }}>
+      <div style={{ marginTop: '1.4rem', marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.75rem', marginBottom: '0.3rem' }}>{artwork.title}</h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-          by <strong style={{ color: '#374151' }}>{artwork.artistUsername}</strong>
-          {' · '}{artwork.category}
+        <p style={{ color: '#6E6785', fontSize: '0.875rem' }}>
+          by <strong style={{ color: '#1F1B2D' }}>{artwork.artistUsername}</strong>
+          {artwork.category && <>{' · '}{artwork.category}</>}
           {' · '}{new Date(artwork.createdAt).toLocaleDateString()}
         </p>
       </div>
@@ -80,44 +82,62 @@ export default function ArtworkDetailPage() {
           src={artwork.imageUrl}
           alt={artwork.title}
           style={{
-            maxWidth: '100%', maxHeight: 420,
-            borderRadius: 8, marginBottom: '1.25rem',
-            objectFit: 'cover', display: 'block',
-            border: '1px solid #e2e8f0',
+            maxWidth: '100%',
+            maxHeight: 440,
+            borderRadius: 12,
+            marginBottom: '1.5rem',
+            objectFit: 'cover',
+            display: 'block',
+            border: '1px solid #DDD6F7',
           }}
           onError={e => { e.target.style.display = 'none' }}
         />
       )}
 
       {artwork.description && (
-        <p style={{ marginBottom: '2rem', lineHeight: 1.65, color: '#374151', fontSize: '0.95rem' }}>
+        <p style={{ marginBottom: '2rem', lineHeight: 1.7, color: '#1F1B2D', fontSize: '0.95rem' }}>
           {artwork.description}
         </p>
       )}
 
-      <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
-        Comments {comments.length > 0 && <span style={{ fontWeight: 400, color: '#64748b' }}>({comments.length})</span>}
+      <h2 style={{
+        fontSize: '1.1rem',
+        marginBottom: '1.1rem',
+        paddingTop: '1rem',
+        borderTop: '1px solid #DDD6F7',
+        color: '#1F1B2D',
+      }}>
+        Comments{comments.length > 0 && (
+          <span style={{ fontWeight: 400, color: '#6E6785', marginLeft: '0.4rem' }}>
+            ({comments.length})
+          </span>
+        )}
       </h2>
 
       {comments.length === 0 ? (
-        <p className="muted" style={{ marginBottom: '1.5rem' }}>No comments yet.</p>
+        <p className="muted" style={{ marginBottom: '1.75rem' }}>No comments yet. Be the first!</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', marginBottom: '2rem' }}>
           {comments.map(c => (
             <div key={c.id} style={{
               background: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              padding: '0.8rem 1rem',
+              border: '1px solid #DDD6F7',
+              borderRadius: 10,
+              padding: '0.9rem 1.1rem',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{c.username}</strong>
-                <span style={{ color: '#f59e0b', fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.35rem',
+              }}>
+                <strong style={{ fontSize: '0.875rem', color: '#1F1B2D' }}>{c.username}</strong>
+                <span style={{ color: '#8B6CFF', fontSize: '0.85rem', letterSpacing: '0.04em' }}>
                   {'★'.repeat(c.rating)}{'☆'.repeat(5 - c.rating)}
                 </span>
               </div>
-              <p style={{ color: '#374151', fontSize: '0.9rem', lineHeight: 1.5 }}>{c.content}</p>
-              <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.35rem' }}>
+              <p style={{ color: '#1F1B2D', fontSize: '0.9rem', lineHeight: 1.55 }}>{c.content}</p>
+              <p style={{ fontSize: '0.75rem', color: '#6E6785', marginTop: '0.4rem' }}>
                 {new Date(c.createdAt).toLocaleString()}
               </p>
             </div>
@@ -126,9 +146,9 @@ export default function ArtworkDetailPage() {
       )}
 
       {token ? (
-        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Leave a comment</h3>
-          <form onSubmit={handleCommentSubmit} className="form-stack" style={{ maxWidth: 500 }}>
+        <div style={{ borderTop: '1px solid #DDD6F7', paddingTop: '1.75rem' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '1.1rem', color: '#1F1B2D' }}>Leave a comment</h3>
+          <form onSubmit={handleCommentSubmit} className="form-stack" style={{ maxWidth: 520 }}>
             <div>
               <label className="field-label">Comment</label>
               <textarea
@@ -161,7 +181,7 @@ export default function ArtworkDetailPage() {
           </form>
         </div>
       ) : (
-        <p className="muted" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+        <p className="muted" style={{ borderTop: '1px solid #DDD6F7', paddingTop: '1.1rem' }}>
           <Link to="/login">Log in</Link> to leave a comment.
         </p>
       )}
