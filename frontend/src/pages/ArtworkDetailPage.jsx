@@ -11,6 +11,9 @@ export default function ArtworkDetailPage() {
   const [rating, setRating] = useState({ averageRating: 0, ratingCount: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // Reviews/rating come from CommentService; they degrade independently of the
+  // artwork so the page still renders if that service is down.
+  const [commentsError, setCommentsError] = useState(false)
 
   // Parent review form
   const [newReview, setNewReview] = useState({ content: '', rating: 5 })
@@ -43,20 +46,27 @@ export default function ArtworkDetailPage() {
   }
 
   useEffect(() => {
-    Promise.all([
-      api.get(`/api/Artwork/${id}`),
-      api.get(`/api/Comment/artwork/${id}`),
-      api.get(`/api/Comment/artwork/${id}/rating`),
-    ])
-      .then(([artRes, commRes, rateRes]) => {
-        setArtwork(artRes.data)
-        setComments(commRes.data)
-        setRating(rateRes.data)
-      })
+    let active = true
+    setLoading(true)
+    setError('')
+    setCommentsError(false)
+
+    // The artwork (ArtService) is the only critical fetch — it alone decides
+    // whether the page renders or shows the full-page error.
+    api.get(`/api/Artwork/${id}`)
+      .then(res => { if (active) setArtwork(res.data) })
       .catch(err => {
-        setError(err.response?.status === 404 ? 'Artwork not found.' : 'Could not load artwork.')
+        if (active) setError(err.response?.status === 404 ? 'Artwork not found.' : 'Could not load artwork.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (active) setLoading(false) })
+
+    // Reviews + rating (CommentService) are allowed to fail on their own: if that
+    // service is down the artwork still loads and the Reviews section shows a
+    // warning instead of taking the whole page down.
+    Promise.all([loadComments(), loadRating()])
+      .catch(() => { if (active) setCommentsError(true) })
+
+    return () => { active = false }
   }, [id])
 
   async function handleReviewSubmit(e) {
@@ -264,6 +274,13 @@ export default function ArtworkDetailPage() {
         )}
       </h2>
 
+      {commentsError ? (
+        <p className="warning-text" style={{ marginBottom: '1.75rem' }}>
+          Reviews are temporarily unavailable — the comment service appears to be
+          offline. The rest of the artwork loaded fine; please try again later.
+        </p>
+      ) : (
+        <>
       {comments.length === 0 ? (
         <p className="muted" style={{ marginBottom: '1.75rem' }}>No reviews yet. Be the first!</p>
       ) : (
@@ -431,6 +448,8 @@ export default function ArtworkDetailPage() {
         <p className="muted" style={{ borderTop: '1px solid #DDD6F7', paddingTop: '1.1rem' }}>
           <Link to="/login">Log in</Link> to leave a review.
         </p>
+      )}
+        </>
       )}
     </div>
   )

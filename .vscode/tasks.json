@@ -50,6 +50,18 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "build-request",
+      "command": "dotnet",
+      "type": "process",
+      "args": [
+        "build",
+        "${workspaceFolder}/RequestService/RequestService.API/RequestService.API.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "build-gateway",
       "command": "dotnet",
       "type": "process",

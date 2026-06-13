@@ -4,11 +4,18 @@ import api from '../api/client'
 import StatusBadge from '../components/StatusBadge'
 
 export default function RequestsPage() {
-  const [tab, setTab] = useState('received')
+  const user = JSON.parse(localStorage.getItem('user') || 'null')
+  // Only artists can receive commission requests; clients (Visitors) only ever
+  // send them, so they get a single "sent" list with no tabs.
+  const isArtist = user?.role === 'Artist'
+  const [tab, setTab] = useState(isArtist ? 'received' : 'sent')
   const [received, setReceived] = useState([])
   const [sent, setSent] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // Tells a session failure (offer re-login) apart from a service outage (the
+  // user is logged in fine — the RequestService is just unreachable).
+  const [sessionExpired, setSessionExpired] = useState(false)
   const token = localStorage.getItem('token')
 
   useEffect(() => {
@@ -17,16 +24,22 @@ export default function RequestsPage() {
       return
     }
     Promise.all([
-      api.get('/api/Request/received').then(r => setReceived(r.data)),
+      isArtist
+        ? api.get('/api/Request/received').then(r => setReceived(r.data))
+        : Promise.resolve(),
       api.get('/api/Request/sent').then(r => setSent(r.data)),
     ])
       .catch(err => {
-        setError(err.response?.status === 401
-          ? 'Your session has expired. Please log in again.'
-          : 'Could not load your requests.')
+        if (err.response?.status === 401) {
+          setSessionExpired(true)
+          setError('Your session has expired. Please log in again.')
+        } else {
+          setSessionExpired(false)
+          setError('The request service is unavailable right now. Please try again later.')
+        }
       })
       .finally(() => setLoading(false))
-  }, [token])
+  }, [token, isArtist])
 
   if (!token) {
     return (
@@ -38,7 +51,15 @@ export default function RequestsPage() {
   }
 
   if (loading) return <p className="loading-text">Loading requests…</p>
-  if (error) return <p className="error-text">{error}</p>
+  if (error) {
+    return (
+      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Artwork Requests</h1>
+        <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
+        {sessionExpired && <Link to="/login">Go to login</Link>}
+      </div>
+    )
+  }
 
   const list = tab === 'received' ? received : sent
 
@@ -60,14 +81,16 @@ export default function RequestsPage() {
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       <h1 style={{ fontSize: '1.5rem', marginBottom: '1.25rem' }}>Artwork Requests</h1>
 
-      <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #DDD6F7', marginBottom: '1.5rem' }}>
-        <button style={tabStyle(tab === 'received')} onClick={() => setTab('received')}>
-          Received ({received.length})
-        </button>
-        <button style={tabStyle(tab === 'sent')} onClick={() => setTab('sent')}>
-          Sent ({sent.length})
-        </button>
-      </div>
+      {isArtist && (
+        <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #DDD6F7', marginBottom: '1.5rem' }}>
+          <button style={tabStyle(tab === 'received')} onClick={() => setTab('received')}>
+            Received ({received.length})
+          </button>
+          <button style={tabStyle(tab === 'sent')} onClick={() => setTab('sent')}>
+            Sent ({sent.length})
+          </button>
+        </div>
+      )}
 
       {list.length === 0 ? (
         <div className="empty-state">

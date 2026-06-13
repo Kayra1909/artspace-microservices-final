@@ -71,6 +71,9 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // Distinguishes an auth failure (offer re-login) from a service outage (the
+  // user is logged in fine — the NotificationService is just unreachable).
+  const [sessionExpired, setSessionExpired] = useState(false)
   const [markingAll, setMarkingAll] = useState(false)
   const token = localStorage.getItem('token')
 
@@ -83,9 +86,11 @@ export default function NotificationsPage() {
       .then(({ data }) => setNotifications(data))
       .catch(err => {
         if (err.response?.status === 401) {
+          setSessionExpired(true)
           setError('Your session has expired. Please log in again.')
         } else {
-          setError('Could not load notifications.')
+          setSessionExpired(false)
+          setError('Notifications are temporarily unavailable. Please try again later.')
         }
       })
       .finally(() => setLoading(false))
@@ -134,7 +139,7 @@ export default function NotificationsPage() {
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Notifications</h1>
         <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
-        <Link to="/login">Go to login</Link>
+        {sessionExpired && <Link to="/login">Go to login</Link>}
       </div>
     )
   }

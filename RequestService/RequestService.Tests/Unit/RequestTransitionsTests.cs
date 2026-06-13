@@ -11,6 +11,7 @@ public class RequestTransitionsTests
     [InlineData(RequestState.NegotiationClient, RequestAction.AcceptOffer, RequestState.WorkInProgress, ActorRole.Client)]
     [InlineData(RequestState.NegotiationClient, RequestAction.CounterOffer, RequestState.NegotiationArtist, ActorRole.Client)]
     [InlineData(RequestState.NegotiationArtist, RequestAction.SetOffer, RequestState.NegotiationClient, ActorRole.Artist)]
+    [InlineData(RequestState.NegotiationArtist, RequestAction.AcceptOffer, RequestState.WorkInProgress, ActorRole.Artist)]
     [InlineData(RequestState.WorkInProgress, RequestAction.SubmitArtwork, RequestState.WaitingReviewClient, ActorRole.Artist)]
     [InlineData(RequestState.WaitingReviewClient, RequestAction.AcceptArtwork, RequestState.Completed, ActorRole.Client)]
     [InlineData(RequestState.WaitingReviewClient, RequestAction.RequestRevisions, RequestState.WorkInProgress, ActorRole.Client)]

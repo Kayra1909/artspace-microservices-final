@@ -28,7 +28,15 @@ export default function RegisterPage() {
       navigate('/login')
     } catch (err) {
       const msg = err.response?.data
-      setError(typeof msg === 'string' ? msg : 'Registration failed. Please try again.')
+      if (typeof msg === 'string' && msg.trim()) {
+        setError(msg)
+      } else if (!err.response || err.response.status >= 500) {
+        // AuthService unreachable or 5xx (e.g. down → gateway 502 with empty
+        // body), as opposed to a validation error like a taken email.
+        setError('The registration service is unavailable right now. Please try again later.')
+      } else {
+        setError('Registration failed. Please try again.')
+      }
     } finally {
       setLoading(false)
     }

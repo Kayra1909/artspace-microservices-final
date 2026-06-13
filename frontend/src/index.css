@@ -188,6 +188,15 @@ input::placeholder, textarea::placeholder {
   border-radius: 8px;
 }
 
+.warning-text {
+  color: #B45309;
+  font-size: 0.875rem;
+  padding: 0.55rem 0.9rem;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+}
+
 .muted {
   color: #6E6785;
   font-size: 0.875rem;

@@ -47,6 +47,10 @@ public static class RequestTransitions
 
         [(RequestState.NegotiationArtist, RequestAction.SetOffer)] =
             new(RequestState.NegotiationClient, ActorRole.Artist),
+        // The artist may accept the client's counter-offer outright, locking the
+        // proposed terms (symmetric to the client accepting in NegotiationClient).
+        [(RequestState.NegotiationArtist, RequestAction.AcceptOffer)] =
+            new(RequestState.WorkInProgress, ActorRole.Artist),
 
         [(RequestState.WorkInProgress, RequestAction.SubmitArtwork)] =
             new(RequestState.WaitingReviewClient, ActorRole.Artist),

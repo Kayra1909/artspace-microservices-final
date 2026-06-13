@@ -47,7 +47,17 @@ export default function ProfilePage() {
     setPage(1)
     api.get(`/api/Auth/profile/by-username/${encodeURIComponent(username)}`)
       .then(({ data }) => setProfile(data))
-      .catch(err => setError(err.response?.status === 404 ? 'Profile not found.' : 'Could not load profile.'))
+      .catch(err => {
+        if (err.response?.status === 404) {
+          setError('Profile not found.')
+        } else if (!err.response || err.response.status >= 500) {
+          // AuthService unreachable (no response) or 5xx — e.g. it's down and the
+          // gateway returns a 502/503. It's not a missing profile.
+          setError('The account service is unavailable right now. Please try again later.')
+        } else {
+          setError('Could not load profile.')
+        }
+      })
       .finally(() => setLoading(false))
   }, [username])
 

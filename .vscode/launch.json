@@ -79,6 +79,25 @@
       }
     },
     {
+      "name": "RequestService",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-request",
+      "program": "${workspaceFolder}/RequestService/RequestService.API/bin/Debug/net8.0/RequestService.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/RequestService/RequestService.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5015",
+        "RABBITMQ_HOST": "localhost"
+      }
+    },
+    {
       "name": "ApiGateway",
       "type": "coreclr",
       "request": "launch",
@@ -115,6 +134,7 @@
         "ArtService",
         "CommentService",
         "NotificationService",
+        "RequestService",
         "ApiGateway"
       ],
       "stopAll": true
@@ -126,6 +146,7 @@
         "ArtService",
         "CommentService",
         "NotificationService",
+        "RequestService",
         "ApiGateway",
         "Frontend (Vite)"
       ],

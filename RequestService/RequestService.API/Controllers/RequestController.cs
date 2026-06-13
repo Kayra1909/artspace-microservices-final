@@ -255,10 +255,20 @@ public class RequestController : ControllerBase
         {
             case RequestAction.SetOffer:
                 if (dto.Price is null or < 0) return "An offer requires a non-negative price.";
-                if (string.IsNullOrWhiteSpace(dto.Eta)) return "An offer requires an estimated delivery time.";
                 r.ProposedPrice = dto.Price;
-                r.ProposedDeliveryTime = dto.Eta;
-                r.ProposedDeadline = null;
+                // An offer carries either a concrete deadline (negotiation re-offer, symmetric
+                // with the client's counter) or a free-text ETA (the artist's opening offer).
+                if (dto.Deadline is not null)
+                {
+                    r.ProposedDeadline = dto.Deadline;
+                    r.ProposedDeliveryTime = dto.Deadline.Value.ToString("yyyy-MM-dd");
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(dto.Eta)) return "An offer requires an estimated delivery time.";
+                    r.ProposedDeliveryTime = dto.Eta;
+                    r.ProposedDeadline = null;
+                }
                 break;
 
             case RequestAction.CounterOffer:

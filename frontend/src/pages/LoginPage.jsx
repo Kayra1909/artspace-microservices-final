@@ -19,7 +19,15 @@ export default function LoginPage() {
       navigate('/')
     } catch (err) {
       const msg = err.response?.data
-      setError(typeof msg === 'string' ? msg : 'Invalid email or password.')
+      if (typeof msg === 'string' && msg.trim()) {
+        setError(msg)
+      } else if (!err.response || err.response.status >= 500) {
+        // AuthService unreachable or 5xx (e.g. down → gateway 502 with empty
+        // body). Don't blame the user's credentials for an outage.
+        setError('The login service is unavailable right now. Please try again later.')
+      } else {
+        setError('Invalid email or password.')
+      }
     } finally {
       setLoading(false)
     }

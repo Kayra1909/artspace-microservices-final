@@ -39,7 +39,17 @@ export default function CommissionRequest({ artistId, artistUsername, artworkId,
       setSuccess('Your request has been submitted successfully.')
     } catch (err) {
       const msg = err.response?.data
-      setError(typeof msg === 'string' ? msg : 'Failed to submit request.')
+      if (typeof msg === 'string' && msg.trim()) {
+        // A real validation/business error from RequestService — show it verbatim.
+        setError(msg)
+      } else if (!err.response || err.response.status >= 500) {
+        // No response (gateway/service unreachable) or a 5xx — e.g. RequestService
+        // is down and Ocelot returns a 503 with an empty body. Avoid setting an
+        // empty string here, which would render nothing under the form.
+        setError('The request service is unavailable right now. Please try again later.')
+      } else {
+        setError('Failed to submit request.')
+      }
     } finally {
       setSubmitting(false)
     }

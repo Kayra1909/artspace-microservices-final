@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api/client'
 import StatusBadge from '../components/StatusBadge'
+import NegotiationActions from '../components/NegotiationActions'
+import DealTerm from '../components/DealTerm'
 
 // Client-side mirror of δ — used ONLY to decide which buttons to show. The server's
 // transition function is the sole authority; the UI is a hint (spec §Page display).
 const LEGAL = {
   WaitingArtistReview: { artist: ['set_offer'], client: [] },
   NegotiationClient: { artist: [], client: ['accept_offer', 'counter_offer'] },
-  NegotiationArtist: { artist: ['set_offer'], client: [] },
+  NegotiationArtist: { artist: ['set_offer', 'accept_offer'], client: [] },
   WorkInProgress: { artist: ['submit_artwork'], client: [] },
   WaitingReviewClient: { artist: [], client: ['accept_artwork', 'request_revisions'] },
   Completed: { artist: [], client: [] },
@@ -57,13 +59,6 @@ function MessageContent({ content }) {
   return content
 }
 
-function deliveryText(req, which) {
-  const time = req[`${which}DeliveryTime`]
-  const deadline = req[`${which}Deadline`]
-  if (deadline) return `by ${new Date(deadline).toLocaleDateString()}`
-  return time || '—'
-}
-
 export default function RequestDetailPage() {
   const { id } = useParams()
   const [request, setRequest] = useState(null)
@@ -73,8 +68,7 @@ export default function RequestDetailPage() {
   const [message, setMessage] = useState('')
 
   // Inline forms for payload-carrying actions.
-  const [offer, setOffer] = useState({ price: '', eta: '' })
-  const [counter, setCounter] = useState({ budget: '', deadline: '' })
+  const [offer, setOffer] = useState({ price: '', deadline: '' })
   const [deliverable, setDeliverable] = useState('')
   const [revisionNote, setRevisionNote] = useState('')
   const [reviewPanel, setReviewPanel] = useState('none') // 'none' | 'accept' | 'revision'
@@ -138,16 +132,11 @@ export default function RequestDetailPage() {
 
   async function submitOffer(e) {
     e.preventDefault()
-    if (await doAction('set_offer', { price: offer.price === '' ? null : Number(offer.price), eta: offer.eta }))
-      setOffer({ price: '', eta: '' })
-  }
-  async function submitCounter(e) {
-    e.preventDefault()
-    const ok = await doAction('counter_offer', {
-      budget: counter.budget === '' ? null : Number(counter.budget),
-      deadline: counter.deadline ? new Date(counter.deadline).toISOString() : null,
+    const ok = await doAction('set_offer', {
+      price: offer.price === '' ? null : Number(offer.price),
+      deadline: offer.deadline ? new Date(offer.deadline).toISOString() : null,
     })
-    if (ok) setCounter({ budget: '', deadline: '' })
+    if (ok) setOffer({ price: '', deadline: '' })
   }
   async function submitDeliverable(e) {
     e.preventDefault()
@@ -209,16 +198,22 @@ export default function RequestDetailPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
           <div style={{ flex: '1 1 200px' }}>
             <p style={labelStyle}>{hasAgreed ? 'Proposed (superseded)' : 'Proposed (not binding)'}</p>
-            <p style={{ margin: 0, color: hasAgreed ? '#6E6785' : '#1F1B2D' }}>
-              {request.proposedPrice != null ? `$${request.proposedPrice}` : '—'} · {deliveryText(request, 'proposed')}
-            </p>
+            <DealTerm
+              price={request.proposedPrice}
+              deliveryTime={request.proposedDeliveryTime}
+              deadline={request.proposedDeadline}
+              style={{ color: hasAgreed ? '#6E6785' : '#1F1B2D' }}
+            />
           </div>
           <div style={{ flex: '1 1 200px' }}>
             <p style={labelStyle}>🔒 Agreed (locked)</p>
             {hasAgreed ? (
-              <p style={{ margin: 0, color: '#166534', fontWeight: 600 }}>
-                ${request.agreedPrice} · {deliveryText(request, 'agreed')}
-              </p>
+              <DealTerm
+                price={request.agreedPrice}
+                deliveryTime={request.agreedDeliveryTime}
+                deadline={request.agreedDeadline}
+                style={{ color: '#166534', fontWeight: 600 }}
+              />
             ) : (
               <p className="muted" style={{ margin: 0 }}>Locked once the client accepts an offer.</p>
             )}
@@ -237,9 +232,10 @@ export default function RequestDetailPage() {
       {/* Actions — only those legal in (state, role) for this viewer (cancel always available) */}
       {role && !isTerminal && (
         <div style={cardStyle}>
-          <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.9rem', color: '#1F1B2D' }}>Your move</h2>
+          <h2 style={{ fontSize: '1.05rem', margin: '0 0 0.9rem', color: '#1F1B2D' }}>Actions</h2>
 
-          {can('set_offer') && (
+          {/* First offer (WaitingArtistReview): a plain offer form — nothing to accept yet. */}
+          {can('set_offer') && !can('accept_offer') && (
             <form onSubmit={submitOffer} className="form-stack" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 140px' }}>
@@ -248,37 +244,34 @@ export default function RequestDetailPage() {
                     onChange={e => setOffer({ ...offer, price: e.target.value })} placeholder="e.g. 200" />
                 </div>
                 <div style={{ flex: '1 1 140px' }}>
-                  <label className="field-label">Estimated delivery</label>
-                  <input type="text" value={offer.eta} required
-                    onChange={e => setOffer({ ...offer, eta: e.target.value })} placeholder="e.g. 2 weeks" />
+                  <label className="field-label">Deadline</label>
+                  <input type="date" value={offer.deadline} required
+                    onChange={e => setOffer({ ...offer, deadline: e.target.value })} />
                 </div>
               </div>
               <button type="submit" className="btn-primary">Send offer</button>
             </form>
           )}
 
+          {/* Negotiation: whoever holds the turn sees the exact same Actions — accept the
+              terms on the table, or counter with a new price + deadline. The only difference
+              is the endpoint: the client's counter is `counter_offer`, the artist's `set_offer`. */}
           {can('accept_offer') && (
-            <button className="btn-primary" style={{ marginRight: '0.6rem', marginBottom: '0.6rem' }}
-              onClick={() => doAction('accept_offer')}>Accept offer & lock terms</button>
-          )}
-
-          {can('counter_offer') && (
-            <form onSubmit={submitCounter} className="form-stack" style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
-              <p style={labelStyle}>Or counter-offer</p>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label className="field-label">Budget (USD)</label>
-                  <input type="number" min="0" step="0.01" value={counter.budget} required
-                    onChange={e => setCounter({ ...counter, budget: e.target.value })} placeholder="e.g. 175" />
-                </div>
-                <div style={{ flex: '1 1 140px' }}>
-                  <label className="field-label">Deadline</label>
-                  <input type="date" value={counter.deadline} required
-                    onChange={e => setCounter({ ...counter, deadline: e.target.value })} />
-                </div>
-              </div>
-              <button type="submit" className="btn-secondary">Send counter-offer</button>
-            </form>
+            <NegotiationActions
+              onAccept={() => doAction('accept_offer')}
+              counterLabel="Counter offer"
+              fields={[
+                { key: 'price', label: 'Price (USD)', type: 'number', placeholder: 'e.g. 200' },
+                { key: 'deadline', label: 'Deadline', type: 'date' },
+              ]}
+              onCounter={vals => {
+                const price = vals.price === '' ? null : Number(vals.price)
+                const deadline = vals.deadline ? new Date(vals.deadline).toISOString() : null
+                return can('counter_offer')
+                  ? doAction('counter_offer', { budget: price, deadline })
+                  : doAction('set_offer', { price, deadline })
+              }}
+            />
           )}
 
           {can('submit_artwork') && (
