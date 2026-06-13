@@ -108,7 +108,10 @@ services:
       - request-service
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_APP_ENV: prod
     ports:
       - "3000:80"
     depends_on:

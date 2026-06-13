@@ -122,7 +122,8 @@
       "command": "npm run dev",
       "cwd": "${workspaceFolder}/frontend",
       "env": {
-        "VITE_API_URL": "http://localhost:5092"
+        "VITE_API_URL": "http://localhost:5092",
+        "VITE_APP_ENV": "dev"
       }
     }
   ],
