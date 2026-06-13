@@ -1,10 +1,16 @@
 services:
   postgres:
-    image: postgres:18
+    # Built from postgres/Dockerfile, which bakes init-db.sh (the per-service DB
+    # creator) into the image. It used to be bind-mounted, but that fails on
+    # Docker Desktop for macOS (noexec file-share → "bad interpreter: Permission
+    # denied" on first init). The build context is the repo root so the Dockerfile
+    # can COPY init-db.sh.
+    build:
+      context: .
+      dockerfile: postgres/Dockerfile
     container_name: artspace-postgres
     environment:
       POSTGRES_PASSWORD: artspace123
-      POSTGRES_MULTIPLE_DATABASES: authdb,artdb,commentdb,notificationdb,requestdb
     ports:
       - "5432:5432"
     volumes:
@@ -13,10 +19,6 @@ services:
       # data survives container recreation. (The old /var/lib/postgresql/17 mount
       # pointed at an empty path, so nothing was ever persisted.)
       - postgres_data:/var/lib/postgresql
-      # Creates the per-service databases (authdb, artdb, …) on first init of an
-      # empty data dir. Without this mount the script never runs and the services
-      # have no database to connect to.
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
 
   rabbitmq:
     image: rabbitmq:management
