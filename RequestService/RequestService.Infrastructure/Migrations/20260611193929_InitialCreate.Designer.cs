@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RequestService.Infrastructure.Data;
@@ -11,9 +12,11 @@ using RequestService.Infrastructure.Data;
 namespace RequestService.Infrastructure.Migrations
 {
     [DbContext(typeof(RequestServiceContext))]
-    partial class RequestServiceContextModelSnapshot : ModelSnapshot
+    [Migration("20260611193929_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,74 +103,6 @@ namespace RequestService.Infrastructure.Migrations
                     b.HasIndex("RequesterId");
 
                     b.ToTable("ArtworkRequests");
-                });
-
-            modelBuilder.Entity("RequestService.Core.Entities.ReferenceArtwork", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ArtistId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ArtistUsername")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("Budget")
-                        .HasColumnType("numeric");
-
-                    b.Property<Guid>("ClientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ClientUsername")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DeliveryTime")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("HiddenByArtist")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("HiddenByClient")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("RequestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Review")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RequestId")
-                        .IsUnique();
-
-                    b.ToTable("ReferenceArtworks");
                 });
 
             modelBuilder.Entity("RequestService.Core.Entities.RequestLog", b =>

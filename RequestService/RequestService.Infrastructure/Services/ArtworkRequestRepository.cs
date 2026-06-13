@@ -38,24 +38,40 @@ public class ArtworkRequestRepository : IArtworkRequestRepository
             .ToListAsync();
     }
 
-    public async Task<ArtworkRequest> CreateAsync(ArtworkRequest request)
+    public async Task<ArtworkRequest> CreateAsync(ArtworkRequest request, RequestLog creationLog)
     {
         _context.ArtworkRequests.Add(request);
+        _context.RequestLogs.Add(creationLog);
         await _context.SaveChangesAsync();
         return request;
     }
 
-    public async Task<ArtworkRequest> UpdateAsync(ArtworkRequest request)
+    public async Task<bool> TryTransitionAsync(ArtworkRequest request, RequestLog log)
     {
-        _context.ArtworkRequests.Update(request);
-        await _context.SaveChangesAsync();
-        return request;
-    }
-
-    public async Task AddLogAsync(RequestLog log)
-    {
+        // `request` is tracked from GetByIdAsync with its original State captured as the
+        // concurrency token; SaveChanges issues UPDATE ... WHERE Id=? AND State=<original>.
         _context.RequestLogs.Add(log);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Another writer won the race: the UPDATE matched 0 rows. Nothing was committed.
+            // Refresh the tracked request to the winning DB values and drop the audit row we
+            // tried to add, so a subsequent GetByIdAsync on this context sees real state.
+            foreach (var entry in ex.Entries)
+                await entry.ReloadAsync();
+            _context.Entry(log).State = EntityState.Detached;
+            return false;
+        }
+    }
+
+    public Task<bool> HasIdempotencyKeyAsync(Guid requestId, string idempotencyKey)
+    {
+        return _context.RequestLogs
+            .AnyAsync(l => l.RequestId == requestId && l.IdempotencyKey == idempotencyKey);
     }
 
     public async Task<RequestMessage> AddMessageAsync(RequestMessage message)

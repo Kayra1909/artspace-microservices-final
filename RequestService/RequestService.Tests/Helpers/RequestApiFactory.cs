@@ -60,6 +60,7 @@ public sealed class RequestApiFactory : WebApplicationFactory<Program>
 
     private sealed class NoopPublisher : IRabbitMQPublisher
     {
-        public void PublishNotification(Guid userId, string message) { /* no-op for tests */ }
+        public void PublishNotification(Guid userId, string message,
+            string? actorUsername = null, string? linkType = null, string? linkId = null) { /* no-op for tests */ }
     }
 }

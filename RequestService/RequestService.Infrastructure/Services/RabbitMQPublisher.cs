@@ -25,9 +25,17 @@ public class RabbitMQPublisher : IRabbitMQPublisher
             arguments: null);
     }
 
-    public void PublishNotification(Guid userId, string message)
+    public void PublishNotification(Guid userId, string message,
+        string? actorUsername = null, string? linkType = null, string? linkId = null)
     {
-        var json = JsonSerializer.Serialize(new { UserId = userId, Message = message });
+        var json = JsonSerializer.Serialize(new
+        {
+            UserId = userId,
+            Message = message,
+            ActorUsername = actorUsername,
+            LinkType = linkType,
+            LinkId = linkId
+        });
         var body = Encoding.UTF8.GetBytes(json);
         _channel.BasicPublish(
             exchange: "",

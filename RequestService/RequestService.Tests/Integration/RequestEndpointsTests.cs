@@ -22,6 +22,35 @@ public class RequestEndpointsTests : IClassFixture<RequestApiFactory>
         return client;
     }
 
+    private static ActionRequestDto Key() => new() { IdempotencyKey = Guid.NewGuid().ToString() };
+
+    private static async Task<RequestResponseDto> Body(HttpResponseMessage res)
+    {
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        return (await res.Content.ReadFromJsonAsync<RequestResponseDto>(Json))!;
+    }
+
+    private async Task<(HttpClient artist, HttpClient client, Guid id)> NewRequest(decimal? budget = 150m)
+    {
+        var artistId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var artist = ClientFor(artistId, "artist", "artist@example.com");
+        var client = ClientFor(clientId, "client", "client@example.com");
+
+        var createRes = await client.PostAsJsonAsync("/api/Request", new CreateRequestDto
+        {
+            Title = "Paint my cat",
+            Description = "A portrait of Mittens",
+            Budget = budget,
+            ArtistId = artistId,
+            ArtistUsername = "artist",
+        });
+        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
+        var created = (await createRes.Content.ReadFromJsonAsync<RequestResponseDto>(Json))!;
+        Assert.Equal("WaitingArtistReview", created.State);
+        return (artist, client, created.Id);
+    }
+
     [Fact]
     public async Task Creating_a_request_requires_authentication()
     {
@@ -31,87 +60,151 @@ public class RequestEndpointsTests : IClassFixture<RequestApiFactory>
     }
 
     [Fact]
-    public async Task Full_lifecycle_create_estimate_accept_and_message()
+    public async Task Full_lifecycle_traverses_negotiation_and_revision_loops_to_completion()
     {
-        var artistId = Guid.NewGuid();
-        var clientId = Guid.NewGuid();
-        var artist = ClientFor(artistId, "artist", "artist@example.com");
-        var client = ClientFor(clientId, "client", "client@example.com");
+        var (artist, client, id) = await NewRequest();
 
-        // Client creates a request.
-        var createRes = await client.PostAsJsonAsync("/api/Request", new CreateRequestDto
-        {
-            Title = "Paint my cat",
-            Description = "A portrait of Mittens",
-            Budget = 150m,
-            ArtistId = artistId,
-            ArtistUsername = "artist",
-        });
-        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
-        var created = await createRes.Content.ReadFromJsonAsync<RequestResponseDto>(Json);
-        Assert.NotNull(created);
-        Assert.Equal("Pending", created!.Status);
-        Assert.Equal("client@example.com", created.RequesterEmail);
-        var id = created.Id;
+        // Negotiation loop (artist offer ↔ client counter), traversed twice.
+        var s = await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
+        Assert.Equal("NegotiationClient", s.State);
+        Assert.Equal(200m, s.ProposedPrice);
+        Assert.Null(s.AgreedPrice); // still only proposed
 
-        // Shows up in both lists.
-        var sent = await client.GetFromJsonAsync<List<RequestResponseDto>>("/api/Request/sent", Json);
-        var received = await artist.GetFromJsonAsync<List<RequestResponseDto>>("/api/Request/received", Json);
-        Assert.Contains(sent!, r => r.Id == id);
-        Assert.Contains(received!, r => r.Id == id);
+        s = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/counter-offer", new ActionRequestDto { Budget = 175m, Deadline = DateTime.UtcNow.AddDays(20) }));
+        Assert.Equal("NegotiationArtist", s.State);
 
-        // Artist cannot accept without estimates.
-        var early = await artist.PostAsync($"/api/Request/{id}/accept", null);
-        Assert.Equal(HttpStatusCode.BadRequest, early.StatusCode);
+        s = await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 190m, Eta = "18 days" }));
+        Assert.Equal("NegotiationClient", s.State);
 
-        // Artist sets estimates.
-        var put = await artist.PutAsJsonAsync($"/api/Request/{id}", new UpdateRequestDto
-        {
-            EstimatedCost = 200m,
-            EstimatedTime = "2 weeks",
-        });
-        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+        // Client accepts → terms lock, WorkInProgress / accepted.
+        s = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/accept-offer", Key()));
+        Assert.Equal("WorkInProgress", s.State);
+        Assert.Equal("Accepted", s.ProgressMode);
+        Assert.Equal(190m, s.AgreedPrice);
+        Assert.Equal("18 days", s.AgreedDeliveryTime);
 
-        // Now accept succeeds.
-        var accept = await artist.PostAsync($"/api/Request/{id}/accept", null);
-        Assert.Equal(HttpStatusCode.OK, accept.StatusCode);
-        var accepted = await accept.Content.ReadFromJsonAsync<RequestResponseDto>(Json);
-        Assert.Equal("Accepted", accepted!.Status);
+        // Artist submits → client review.
+        s = await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/submit-artwork", new ActionRequestDto { Note = "First draft attached." }));
+        Assert.Equal("WaitingReviewClient", s.State);
+        Assert.Equal("First draft attached.", s.Deliverable);
 
-        // Both participants can message; a stranger cannot read the request.
-        await client.PostAsJsonAsync($"/api/Request/{id}/messages", new CreateMessageDto { Content = "Thank you!" });
-        await artist.PostAsJsonAsync($"/api/Request/{id}/messages", new CreateMessageDto { Content = "On it." });
+        // Revision loop, traversed once.
+        s = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/request-revisions", new ActionRequestDto { Note = "Make it brighter." }));
+        Assert.Equal("WorkInProgress", s.State);
+        Assert.Equal("Rejected", s.ProgressMode); // "revisions requested"
+        Assert.Equal(190m, s.AgreedPrice);         // locked terms unchanged through revisions
 
+        s = await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/submit-artwork", new ActionRequestDto { Note = "Brighter version." }));
+        Assert.Equal("WaitingReviewClient", s.State);
+
+        s = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/accept-artwork",
+            new ActionRequestDto { IdempotencyKey = Guid.NewGuid().ToString(), Rating = 5, Review = "Love it!" }));
+        Assert.Equal("Completed", s.State);
+        Assert.True(s.IsLocked);
+
+        // Audit history is append-only, ordered, and records from→to + actor role.
         var detail = await artist.GetFromJsonAsync<RequestResponseDto>($"/api/Request/{id}", Json);
-        Assert.Equal(2, detail!.Messages.Count);
-        Assert.NotEmpty(detail.Logs); // creation + estimate edit + accept
-
-        var stranger = ClientFor(Guid.NewGuid(), "nosy");
-        var forbidden = await stranger.GetAsync($"/api/Request/{id}");
-        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+        var actions = detail!.Logs.Select(l => l.Action).ToList();
+        Assert.Equal(new[]
+        {
+            "submit_request", "set_offer", "counter_offer", "set_offer",
+            "accept_offer", "submit_artwork", "request_revisions", "submit_artwork", "accept_artwork",
+        }, actions);
+        var accept = detail.Logs.Single(l => l.Action == "accept_offer");
+        Assert.Equal("NegotiationClient", accept.FromState);
+        Assert.Equal("WorkInProgress", accept.ToState);
+        Assert.Equal("client", accept.ActorRole);
     }
 
     [Fact]
-    public async Task Requester_can_withdraw_a_pending_request()
+    public async Task Submit_artwork_link_and_revision_note_appear_in_the_message_thread()
     {
-        var artistId = Guid.NewGuid();
-        var clientId = Guid.NewGuid();
-        var artist = ClientFor(artistId, "artist");
-        var client = ClientFor(clientId, "client");
+        var (artist, client, id) = await NewRequest();
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
+        await Body(await client.PostAsJsonAsync($"/api/Request/{id}/accept-offer", Key()));
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/submit-artwork", new ActionRequestDto { Note = "https://img.example/cat.png" }));
+        await Body(await client.PostAsJsonAsync($"/api/Request/{id}/request-revisions", new ActionRequestDto { Note = "Make it brighter." }));
 
-        var createRes = await client.PostAsJsonAsync("/api/Request", new CreateRequestDto
-        {
-            Title = "Sketch", ArtistId = artistId, ArtistUsername = "artist",
-        });
-        var created = await createRes.Content.ReadFromJsonAsync<RequestResponseDto>(Json);
+        var detail = await client.GetFromJsonAsync<RequestResponseDto>($"/api/Request/{id}", Json);
+        Assert.Contains(detail!.Messages, m => m.Content == "https://img.example/cat.png" && m.SenderUsername == "artist");
+        Assert.Contains(detail.Messages, m => m.Content == "Make it brighter." && m.SenderUsername == "client");
+    }
 
-        // Artist cannot withdraw; requester can.
-        var artistTry = await artist.PostAsync($"/api/Request/{created!.Id}/withdraw", null);
-        Assert.Equal(HttpStatusCode.Forbidden, artistTry.StatusCode);
+    [Fact]
+    public async Task Action_outside_delta_is_rejected_with_422()
+    {
+        var (artist, _, id) = await NewRequest();
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
 
-        var withdraw = await client.PostAsync($"/api/Request/{created.Id}/withdraw", null);
-        Assert.Equal(HttpStatusCode.OK, withdraw.StatusCode);
-        var result = await withdraw.Content.ReadFromJsonAsync<RequestResponseDto>(Json);
-        Assert.Equal("Withdrawn", result!.Status);
+        // submit_artwork from NegotiationClient is not in δ.
+        var res = await artist.PostAsJsonAsync($"/api/Request/{id}/submit-artwork", new ActionRequestDto { Note = "x" });
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task Double_accept_offer_with_same_key_is_a_single_logged_no_op()
+    {
+        var (artist, client, id) = await NewRequest();
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
+
+        var key = new ActionRequestDto { IdempotencyKey = "accept-once" };
+        var first = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/accept-offer", key));
+        var second = await Body(await client.PostAsJsonAsync($"/api/Request/{id}/accept-offer", key));
+
+        Assert.Equal("WorkInProgress", first.State);
+        Assert.Equal("WorkInProgress", second.State);
+        Assert.Equal(first.AgreedPrice, second.AgreedPrice); // terms unchanged
+
+        var detail = await client.GetFromJsonAsync<RequestResponseDto>($"/api/Request/{id}", Json);
+        Assert.Single(detail!.Logs, l => l.Action == "accept_offer"); // exactly one history row
+    }
+
+    [Fact]
+    public async Task Mutations_after_a_terminal_state_are_locked()
+    {
+        var (artist, client, id) = await NewRequest();
+        await Body(await client.PostAsJsonAsync($"/api/Request/{id}/cancel", Key()));
+
+        var afterCancel = await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" });
+        Assert.Equal(HttpStatusCode.Conflict, afterCancel.StatusCode);
+
+        // Reads stay open.
+        var read = await artist.GetAsync($"/api/Request/{id}");
+        Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+    }
+
+    [Fact]
+    public async Task Cancel_is_allowed_from_a_non_terminal_state_by_either_party()
+    {
+        // Cancelled by the artist mid-negotiation.
+        var (artist, client, id) = await NewRequest();
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
+        var byArtist = await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/cancel", Key()));
+        Assert.Equal("Cancelled", byArtist.State);
+
+        // And cancellable by the client from the very first state.
+        var (_, client2, id2) = await NewRequest();
+        var byClient = await Body(await client2.PostAsJsonAsync($"/api/Request/{id2}/cancel", Key()));
+        Assert.Equal("Cancelled", byClient.State);
+    }
+
+    [Fact]
+    public async Task Actions_are_bound_to_their_actor_role()
+    {
+        var (artist, client, id) = await NewRequest();
+
+        // Client cannot make an artist's offer.
+        var clientOffer = await client.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" });
+        Assert.Equal(HttpStatusCode.Forbidden, clientOffer.StatusCode);
+
+        await Body(await artist.PostAsJsonAsync($"/api/Request/{id}/offer", new ActionRequestDto { Price = 200m, Eta = "2 weeks" }));
+
+        // Artist cannot accept on the client's behalf.
+        var artistAccept = await artist.PostAsJsonAsync($"/api/Request/{id}/accept-offer", Key());
+        Assert.Equal(HttpStatusCode.Forbidden, artistAccept.StatusCode);
+
+        // A non-participant can neither read nor act.
+        var stranger = ClientFor(Guid.NewGuid(), "nosy");
+        Assert.Equal(HttpStatusCode.Forbidden, (await stranger.GetAsync($"/api/Request/{id}")).StatusCode);
     }
 }

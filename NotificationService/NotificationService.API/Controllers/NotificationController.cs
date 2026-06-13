@@ -39,6 +39,9 @@ public class NotificationController : ControllerBase
         Id = n.Id,
         Message = n.Message,
         IsRead = n.IsRead,
-        CreatedAt = n.CreatedAt
+        CreatedAt = n.CreatedAt,
+        ActorUsername = n.ActorUsername,
+        LinkType = n.LinkType,
+        LinkId = n.LinkId
     };
 }

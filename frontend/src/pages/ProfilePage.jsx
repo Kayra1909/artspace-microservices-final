@@ -1,25 +1,33 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import api from '../api/client'
 import Avatar from '../components/Avatar'
 import CommissionRequest from '../components/CommissionRequest'
+import ReferenceItem from '../components/ReferenceItem'
 import ArtworkItem from './ArtworkItem'
 
 const PAGE_SIZE = 12
 
 export default function ProfilePage() {
   const { username } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [activeTab, setActiveTab] = useState('artworks')
+  // The active tab is driven by ?tab= (artworks | references); artworks is the default.
+  const activeTab = searchParams.get('tab') === 'references' ? 'references' : 'artworks'
+  const selectTab = key => setSearchParams(key === 'artworks' ? {} : { tab: key }, { replace: true })
 
   // Paginated artworks for the Artworks tab.
   const [page, setPage] = useState(1)
   const [gallery, setGallery] = useState({ items: [], total: 0, totalPages: 0 })
   const [galleryLoading, setGalleryLoading] = useState(false)
+
+  // Completed reference artworks (the artist's finished commissions) for the References tab.
+  const [references, setReferences] = useState([])
+  const [referencesLoading, setReferencesLoading] = useState(false)
 
   // Inline self-edit.
   const currentUser = JSON.parse(localStorage.getItem('user') || 'null')
@@ -37,7 +45,6 @@ export default function ProfilePage() {
     setError('')
     setProfile(null)
     setPage(1)
-    setActiveTab('artworks')
     api.get(`/api/Auth/profile/by-username/${encodeURIComponent(username)}`)
       .then(({ data }) => setProfile(data))
       .catch(err => setError(err.response?.status === 404 ? 'Profile not found.' : 'Could not load profile.'))
@@ -53,6 +60,16 @@ export default function ProfilePage() {
       .catch(() => setGallery({ items: [], total: 0, totalPages: 0 }))
       .finally(() => setGalleryLoading(false))
   }, [profile, isArtist, activeTab, page])
+
+  // Load this artist's completed reference artworks when on the References tab.
+  useEffect(() => {
+    if (!profile || !isArtist || activeTab !== 'references') return
+    setReferencesLoading(true)
+    api.get('/api/Reference')
+      .then(({ data }) => setReferences(data.filter(r => r.artistId === profile.id)))
+      .catch(() => setReferences([]))
+      .finally(() => setReferencesLoading(false))
+  }, [profile, isArtist, activeTab])
 
   function openEdit() {
     setForm({
@@ -98,7 +115,7 @@ export default function ProfilePage() {
   if (error) return (
     <div>
       <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
-      <Link to="/artworks">← Back to artworks</Link>
+      <Link to="/">← Back to artworks</Link>
     </div>
   )
 
@@ -223,7 +240,7 @@ export default function ProfilePage() {
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => selectTab(tab.key)}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -254,10 +271,11 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'references' && (
-            <div className="empty-state">
-              <p className="empty-title">No reference arts yet.</p>
-              <p className="empty-sub">Completed reference pieces will appear here in a future update.</p>
-            </div>
+            <ReferencesTab
+              references={references}
+              loading={referencesLoading}
+              username={profile.username}
+            />
           )}
         </div>
       )}
@@ -319,6 +337,27 @@ function ArtworksTab({ gallery, loading, page, setPage, username }) {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function ReferencesTab({ references, loading, username }) {
+  if (loading) return <p className="loading-text">Loading reference arts…</p>
+
+  if (references.length === 0) {
+    return (
+      <div className="empty-state">
+        <p className="empty-title">{username} has no completed commissions yet.</p>
+        <p className="empty-sub">Accepted commission deliveries appear here as reference arts.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.1rem' }}>
+      {references.map(r => (
+        <ReferenceItem key={r.id} reference={r} showArtist={false} />
+      ))}
     </div>
   )
 }

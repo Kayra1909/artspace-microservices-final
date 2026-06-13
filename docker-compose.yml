@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:18
     container_name: artspace-postgres
     environment:
       POSTGRES_PASSWORD: artspace123
@@ -8,7 +8,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/17
+      # PG18's data dir is /var/lib/postgresql/18/docker; mounting the whole
+      # /var/lib/postgresql captures it regardless of the versioned subpath, so
+      # data survives container recreation. (The old /var/lib/postgresql/17 mount
+      # pointed at an empty path, so nothing was ever persisted.)
+      - postgres_data:/var/lib/postgresql
+      # Creates the per-service databases (authdb, artdb, …) on first init of an
+      # empty data dir. Without this mount the script never runs and the services
+      # have no database to connect to.
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
 
   rabbitmq:
     image: rabbitmq:management

@@ -99,10 +99,10 @@ export default function RequestsPage() {
                   <p className="muted" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem' }}>
                     {tab === 'received' ? `from ${r.requesterUsername}` : `to ${r.artistUsername}`}
                     {' · '}{new Date(r.createdAt).toLocaleDateString()}
-                    {r.budget != null && <> · Budget ${r.budget}</>}
+                    {(r.agreedPrice ?? r.proposedPrice) != null && <> · ${r.agreedPrice ?? r.proposedPrice}</>}
                   </p>
                 </div>
-                <StatusBadge status={r.status} />
+                <StatusBadge state={r.state} progressMode={r.progressMode} viewerRole={tab === 'received' ? 'artist' : 'client'} />
               </div>
             </Link>
           ))}

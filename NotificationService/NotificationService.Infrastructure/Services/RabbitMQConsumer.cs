@@ -75,7 +75,10 @@ public class RabbitMQConsumer : BackgroundService
             UserId = commentEvent.RecipientId,
             Message = notificationMessage,
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            // Link the commenter's name to their profile. No artwork id travels on
+            // the comment_created event, so there is no object link to attach.
+            ActorUsername = commentEvent.Username
         });
     }
 

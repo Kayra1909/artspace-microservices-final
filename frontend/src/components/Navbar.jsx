@@ -1,10 +1,35 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
+import api from '../api/client'
 
 export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
+  const [unread, setUnread] = useState(0)
+
+  // Keep the Notifications badge in sync: refetch on navigation, on a light poll,
+  // and whenever the Notifications page tells us it changed something (mark read).
+  useEffect(() => {
+    // No token → the Notifications link (and its badge) isn't rendered, so there's
+    // nothing to count. Any stale value stays harmlessly hidden until next login.
+    if (!token) return
+    let cancelled = false
+    const load = () => api.get('/api/Notification')
+      .then(({ data }) => { if (!cancelled) setUnread(data.filter(n => !n.isRead).length) })
+      .catch(() => { /* keep the last known count */ })
+
+    load()
+    const onUpdate = () => load()
+    window.addEventListener('notifications-updated', onUpdate)
+    const interval = setInterval(load, 45000)
+    return () => {
+      cancelled = true
+      window.removeEventListener('notifications-updated', onUpdate)
+      clearInterval(interval)
+    }
+  }, [token, location.pathname])
 
   function logout() {
     localStorage.removeItem('token')
@@ -50,14 +75,32 @@ export default function Navbar() {
         ArtSpace
       </Link>
 
-      <Link to="/artworks" style={navLink('/artworks')}>Artworks</Link>
-
       {token && (
         <Link to="/requests" style={navLink('/requests')}>Requests</Link>
       )}
 
       {token && (
-        <Link to="/notifications" style={navLink('/notifications')}>Notifications</Link>
+        <Link to="/notifications" style={{ ...navLink('/notifications'), display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+          Notifications
+          {unread > 0 && (
+            <span style={{
+              background: '#8B6CFF',
+              color: '#fff',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              lineHeight: 1,
+              minWidth: 18,
+              height: 18,
+              padding: '0 5px',
+              borderRadius: 99,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {unread > 99 ? '99+' : unread}
+            </span>
+          )}
+        </Link>
       )}
 
       {token ? (

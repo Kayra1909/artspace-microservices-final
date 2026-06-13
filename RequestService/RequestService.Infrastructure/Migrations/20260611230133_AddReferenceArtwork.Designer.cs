@@ -12,8 +12,8 @@ using RequestService.Infrastructure.Data;
 namespace RequestService.Infrastructure.Migrations
 {
     [DbContext(typeof(RequestServiceContext))]
-    [Migration("20260611154340_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260611230133_AddReferenceArtwork")]
+    partial class AddReferenceArtwork
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,6 +31,15 @@ namespace RequestService.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("AgreedDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AgreedDeliveryTime")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("AgreedPrice")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("ArtistId")
                         .HasColumnType("uuid");
 
@@ -41,24 +50,28 @@ namespace RequestService.Infrastructure.Migrations
                     b.Property<Guid?>("ArtworkId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal?>("Budget")
-                        .HasColumnType("numeric");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime?>("Deadline")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Deliverable")
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal?>("EstimatedCost")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("EstimatedTime")
+                    b.Property<string>("ProgressMode")
+                        .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProposedDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProposedDeliveryTime")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("ProposedPrice")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("RequesterEmail")
                         .IsRequired()
@@ -71,7 +84,8 @@ namespace RequestService.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("State")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -91,6 +105,74 @@ namespace RequestService.Infrastructure.Migrations
                     b.ToTable("ArtworkRequests");
                 });
 
+            modelBuilder.Entity("RequestService.Core.Entities.ReferenceArtwork", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArtistId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArtistUsername")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("Budget")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClientUsername")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeliveryTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("HiddenByArtist")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HiddenByClient")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Review")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.ToTable("ReferenceArtworks");
+                });
+
             modelBuilder.Entity("RequestService.Core.Entities.RequestLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -101,6 +183,13 @@ namespace RequestService.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid>("ActorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorRole")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("ActorUsername")
                         .IsRequired()
                         .HasColumnType("text");
@@ -108,12 +197,36 @@ namespace RequestService.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("FromState")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("PayloadBudget")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("PayloadDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadNote")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("PayloadPrice")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("RequestId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ToState")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("RequestId");
+                    b.HasIndex("RequestId", "IdempotencyKey")
+                        .IsUnique();
 
                     b.ToTable("RequestLogs");
                 });

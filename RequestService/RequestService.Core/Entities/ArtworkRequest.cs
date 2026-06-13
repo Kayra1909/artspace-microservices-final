@@ -1,23 +1,32 @@
 namespace RequestService.Core.Entities;
 
+// The "tape" of the state machine: the request record. The head is `State`; every field
+// here is written only through a validated δ transition (see RequestController.Transition).
 public class ArtworkRequest
 {
     public Guid Id { get; set; }
 
     public string Title { get; set; } = string.Empty;
-
-    // Editable by the artist after the request lands.
     public string Description { get; set; } = string.Empty;
 
-    // Optional client-supplied figures. Budget/Deadline are editable by the client.
-    public decimal? Budget { get; set; }
-    public DateTime? Deadline { get; set; }
+    // Head of the machine, plus the WIP annotation (None unless in WorkInProgress).
+    public RequestState State { get; set; } = RequestState.WaitingArtistReview;
+    public ProgressMode ProgressMode { get; set; } = ProgressMode.None;
 
-    // Optional artist-supplied figures; an accept requires both to be set.
-    public string? EstimatedTime { get; set; }
-    public decimal? EstimatedCost { get; set; }
+    // Proposed (non-binding) deal terms — the offer currently on the table. Overwritten by
+    // each set_offer (artist: price + ETA text) and counter_offer (client: budget + deadline).
+    public decimal? ProposedPrice { get; set; }
+    public string? ProposedDeliveryTime { get; set; }
+    public DateTime? ProposedDeadline { get; set; }
 
-    public RequestStatus Status { get; set; } = RequestStatus.Pending;
+    // Agreed (binding) deal terms — committed and locked once on accept_offer (3.1); after
+    // that they never change.
+    public decimal? AgreedPrice { get; set; }
+    public string? AgreedDeliveryTime { get; set; }
+    public DateTime? AgreedDeadline { get; set; }
+
+    // The deliverable note/link attached by submit_artwork (4.1).
+    public string? Deliverable { get; set; }
 
     // The artwork that inspired the commission (optional context).
     public Guid? ArtworkId { get; set; }
@@ -33,7 +42,7 @@ public class ArtworkRequest
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Set whenever a field is edited or the status changes; NULL means never touched.
+    // Set on every transition; NULL means never transitioned past creation.
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<RequestLog> Logs { get; set; } = new List<RequestLog>();

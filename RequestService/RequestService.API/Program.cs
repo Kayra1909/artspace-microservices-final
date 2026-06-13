@@ -18,6 +18,7 @@ builder.Services.AddDbContext<RequestServiceContext>(options =>
 
 // Services
 builder.Services.AddScoped<IArtworkRequestRepository, ArtworkRequestRepository>();
+builder.Services.AddScoped<IReferenceArtworkRepository, ReferenceArtworkRepository>();
 builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
 
 // JWT

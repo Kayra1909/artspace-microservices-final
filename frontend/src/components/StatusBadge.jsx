@@ -1,14 +1,35 @@
-// Colour-coded pill for an artwork request status.
+// Colour-coded pill for a request's state-machine state, with an optional progress-mode
+// suffix while Work in progress (e.g. "Work in progress · revisions requested").
 const STYLES = {
-  Pending: { bg: '#FEF3C7', fg: '#92400E', border: '#FCD34D' },
-  Accepted: { bg: '#DCFCE7', fg: '#166534', border: '#86EFAC' },
-  Declined: { bg: '#FEE2E2', fg: '#991B1B', border: '#FCA5A5' },
-  Completed: { bg: '#EDE8FB', fg: '#5B3FD6', border: '#C4B5FD' },
-  Withdrawn: { bg: '#F3F4F6', fg: '#4B5563', border: '#D1D5DB' },
+  WaitingArtistReview: { label: 'Waiting for artist', bg: '#FEF3C7', fg: '#92400E', border: '#FCD34D' },
+  NegotiationClient: { label: 'Your move', bg: '#DBEAFE', fg: '#1E40AF', border: '#93C5FD' },
+  NegotiationArtist: { label: 'Negotiating', bg: '#DBEAFE', fg: '#1E40AF', border: '#93C5FD' },
+  WorkInProgress: { label: 'Work in progress', bg: '#EDE8FB', fg: '#5B3FD6', border: '#C4B5FD' },
+  WaitingReviewClient: { label: 'Awaiting review', bg: '#FEF3C7', fg: '#92400E', border: '#FCD34D' },
+  Completed: { label: 'Completed', bg: '#DCFCE7', fg: '#166534', border: '#86EFAC' },
+  Cancelled: { label: 'Cancelled', bg: '#F3F4F6', fg: '#4B5563', border: '#D1D5DB' },
 }
 
-export default function StatusBadge({ status }) {
-  const s = STYLES[status] || STYLES.Withdrawn
+const PROGRESS_SUFFIX = {
+  Accepted: 'accepted',
+  Rejected: 'revisions requested',
+}
+
+const UNKNOWN = { label: 'Unknown', bg: '#F3F4F6', fg: '#4B5563', border: '#D1D5DB' }
+
+export default function StatusBadge({ state, progressMode, viewerRole }) {
+  // Fall back to a neutral "Unknown" rather than a real terminal state, so a missing/stale
+  // `state` (e.g. an out-of-date backend) never masquerades as a genuine "Cancelled".
+  const s = STYLES[state] || { ...UNKNOWN, label: state || 'Unknown' }
+
+  // "Awaiting review" is relative to who's looking: it's the client's turn to confirm.
+  let label = s.label
+  if (state === 'WaitingReviewClient') {
+    if (viewerRole === 'artist') label = 'Awaiting client confirmation'
+    else if (viewerRole === 'client') label = 'Awaiting your confirmation'
+  }
+
+  const suffix = state === 'WorkInProgress' && PROGRESS_SUFFIX[progressMode]
   return (
     <span style={{
       background: s.bg,
@@ -22,7 +43,7 @@ export default function StatusBadge({ status }) {
       whiteSpace: 'nowrap',
       flexShrink: 0,
     }}>
-      {status}
+      {label}{suffix ? ` · ${suffix}` : ''}
     </span>
   )
 }

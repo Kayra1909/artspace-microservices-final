@@ -77,7 +77,10 @@ public class RequestNotificationConsumer : BackgroundService
             UserId = evt.UserId,
             Message = evt.Message,
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ActorUsername = evt.ActorUsername,
+            LinkType = evt.LinkType,
+            LinkId = evt.LinkId
         });
     }
 
@@ -93,4 +96,7 @@ public class RequestNotificationEvent
 {
     public Guid UserId { get; set; }
     public string Message { get; set; } = string.Empty;
+    public string? ActorUsername { get; set; }
+    public string? LinkType { get; set; }
+    public string? LinkId { get; set; }
 }

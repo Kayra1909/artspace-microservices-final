@@ -2,10 +2,76 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api/client'
 
+// Renders a notification message with clickable references woven in:
+//   • the actor's name (first occurrence of `actorUsername`) → their profile
+//   • the affected object, quoted in the message as "Title", → its page
+//     (currently only LinkType "request" → /requests/:linkId)
+// Anything we can't resolve falls back to plain text, so a message without
+// link metadata renders exactly as before.
+function NotificationMessage({ message, actorUsername, linkType, linkId }) {
+  const objectHref = linkType === 'request' && linkId ? `/requests/${linkId}` : null
+
+  // Build an ordered list of [start, end, element] spans to linkify, then stitch
+  // the message together around them. We only link the first match of each so we
+  // never double-wrap or mangle overlapping ranges.
+  const spans = []
+
+  if (actorUsername) {
+    const i = message.indexOf(actorUsername)
+    if (i !== -1) {
+      spans.push({
+        start: i,
+        end: i + actorUsername.length,
+        el: (
+          <Link to={`/users/${encodeURIComponent(actorUsername)}`} style={linkStyle}>
+            {actorUsername}
+          </Link>
+        ),
+      })
+    }
+  }
+
+  if (objectHref) {
+    // The object title is the text inside the first pair of double quotes.
+    const open = message.indexOf('"')
+    const close = open !== -1 ? message.indexOf('"', open + 1) : -1
+    if (open !== -1 && close !== -1) {
+      spans.push({
+        start: open,
+        end: close + 1,
+        el: (
+          <Link to={objectHref} style={linkStyle}>
+            {message.slice(open, close + 1)}
+          </Link>
+        ),
+      })
+    }
+  }
+
+  if (spans.length === 0) return <>{message}</>
+
+  spans.sort((a, b) => a.start - b.start)
+
+  const parts = []
+  let cursor = 0
+  spans.forEach((s, idx) => {
+    if (s.start < cursor) return // skip any overlap
+    if (s.start > cursor) parts.push(message.slice(cursor, s.start))
+    parts.push(<span key={idx}>{s.el}</span>)
+    cursor = s.end
+  })
+  if (cursor < message.length) parts.push(message.slice(cursor))
+
+  return <>{parts}</>
+}
+
+const linkStyle = { color: '#5B3FD6', fontWeight: 600, textDecoration: 'none' }
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [markingAll, setMarkingAll] = useState(false)
   const token = localStorage.getItem('token')
 
   useEffect(() => {
@@ -29,8 +95,26 @@ export default function NotificationsPage() {
     try {
       await api.put(`/api/Notification/${id}/read`)
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
+      window.dispatchEvent(new Event('notifications-updated'))
     } catch {
       // ignore
+    }
+  }
+
+  async function markAllRead() {
+    const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id)
+    if (unreadIds.length === 0) return
+    setMarkingAll(true)
+    // Optimistically flip everything; the badge clears immediately even if a
+    // stray request fails.
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    window.dispatchEvent(new Event('notifications-updated'))
+    try {
+      await Promise.all(unreadIds.map(id => api.put(`/api/Notification/${id}/read`)))
+    } catch {
+      // ignore — already reflected optimistically
+    } finally {
+      setMarkingAll(false)
     }
   }
 
@@ -74,6 +158,28 @@ export default function NotificationsPage() {
             {unread} new
           </span>
         )}
+        {unread > 0 && (
+          <button
+            onClick={markAllRead}
+            disabled={markingAll}
+            style={{
+              marginLeft: 'auto',
+              background: 'transparent',
+              border: '1px solid #C4B5FD',
+              color: '#5B3FD6',
+              borderRadius: 7,
+              padding: '0.3rem 0.85rem',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: markingAll ? 'default' : 'pointer',
+              opacity: markingAll ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {markingAll ? 'Marking…' : 'Mark all as read'}
+          </button>
+        )}
       </div>
 
       {notifications.length === 0 ? (
@@ -109,7 +215,14 @@ export default function NotificationsPage() {
                       display: 'inline-block',
                     }} />
                   )}
-                  <span style={{ color: '#1F1B2D', fontSize: '0.9rem' }}>{n.message}</span>
+                  <span style={{ color: '#1F1B2D', fontSize: '0.9rem' }}>
+                    <NotificationMessage
+                      message={n.message}
+                      actorUsername={n.actorUsername}
+                      linkType={n.linkType}
+                      linkId={n.linkId}
+                    />
+                  </span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#6E6785', paddingLeft: n.isRead ? 0 : '1rem' }}>
                   {new Date(n.createdAt).toLocaleString()}

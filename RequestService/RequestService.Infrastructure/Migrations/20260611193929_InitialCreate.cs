@@ -18,11 +18,15 @@ namespace RequestService.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
-                    Budget = table.Column<decimal>(type: "numeric", nullable: true),
-                    Deadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    EstimatedTime = table.Column<string>(type: "text", nullable: true),
-                    EstimatedCost = table.Column<decimal>(type: "numeric", nullable: true),
-                    Status = table.Column<string>(type: "text", nullable: false),
+                    State = table.Column<string>(type: "text", nullable: false),
+                    ProgressMode = table.Column<string>(type: "text", nullable: false),
+                    ProposedPrice = table.Column<decimal>(type: "numeric", nullable: true),
+                    ProposedDeliveryTime = table.Column<string>(type: "text", nullable: true),
+                    ProposedDeadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AgreedPrice = table.Column<decimal>(type: "numeric", nullable: true),
+                    AgreedDeliveryTime = table.Column<string>(type: "text", nullable: true),
+                    AgreedDeadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Deliverable = table.Column<string>(type: "text", nullable: true),
                     ArtworkId = table.Column<Guid>(type: "uuid", nullable: true),
                     RequesterId = table.Column<Guid>(type: "uuid", nullable: false),
                     RequesterUsername = table.Column<string>(type: "text", nullable: false),
@@ -43,8 +47,17 @@ namespace RequestService.Infrastructure.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     RequestId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FromState = table.Column<string>(type: "text", nullable: false),
+                    ToState = table.Column<string>(type: "text", nullable: false),
                     Action = table.Column<string>(type: "text", nullable: false),
+                    ActorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ActorRole = table.Column<string>(type: "text", nullable: false),
                     ActorUsername = table.Column<string>(type: "text", nullable: false),
+                    PayloadPrice = table.Column<decimal>(type: "numeric", nullable: true),
+                    PayloadBudget = table.Column<decimal>(type: "numeric", nullable: true),
+                    PayloadDeadline = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PayloadNote = table.Column<string>(type: "text", nullable: true),
+                    IdempotencyKey = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -91,9 +104,10 @@ namespace RequestService.Infrastructure.Migrations
                 column: "RequesterId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RequestLogs_RequestId",
+                name: "IX_RequestLogs_RequestId_IdempotencyKey",
                 table: "RequestLogs",
-                column: "RequestId");
+                columns: new[] { "RequestId", "IdempotencyKey" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RequestMessages_RequestId",

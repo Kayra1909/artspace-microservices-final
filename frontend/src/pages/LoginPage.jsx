@@ -16,7 +16,7 @@ export default function LoginPage() {
       const { data } = await api.post('/api/Auth/login', form)
       localStorage.setItem('token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
-      navigate('/artworks')
+      navigate('/')
     } catch (err) {
       const msg = err.response?.data
       setError(typeof msg === 'string' ? msg : 'Invalid email or password.')

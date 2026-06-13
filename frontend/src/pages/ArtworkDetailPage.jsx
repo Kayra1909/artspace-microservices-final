@@ -130,7 +130,7 @@ export default function ArtworkDetailPage() {
   if (error) return (
     <div>
       <p className="error-text" style={{ marginBottom: '1rem' }}>{error}</p>
-      <Link to="/artworks">← Back to artworks</Link>
+      <Link to="/">← Back to artworks</Link>
     </div>
   )
 
@@ -202,7 +202,7 @@ export default function ArtworkDetailPage() {
 
   return (
     <div style={{ maxWidth: 740, margin: '0 auto' }}>
-      <Link to="/artworks" style={{ fontSize: '0.875rem', color: '#6E6785' }}>
+      <Link to="/" style={{ fontSize: '0.875rem', color: '#6E6785' }}>
         ← Back to artworks
       </Link>
 
